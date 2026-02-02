@@ -1,78 +1,102 @@
 import { useState } from 'react';
 import styles from './app.module.css';
-import data from './data.json';
 
 export const App = () => {
-	const [steps] = useState(data);
-	const [activeIndex, setActiveIndex] = useState(0);
+  const [display, setDisplay] = useState("");
+  const [isResult, setIsResult] = useState(false);
 
-	const isFirstStep = activeIndex === 0;
-	const isLastStep = activeIndex === steps.length - 1;
+  const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-	const onBack = () => {
-		if (!isFirstStep) {
-			setActiveIndex((prev) => prev - 1);
-		}
-	};
+  const operations = ["+", "-", "=", "C"];
 
-	const onNext = () => {
-		if (!isLastStep) {
-			setActiveIndex((prev) => prev + 1);
-		}
-	};
+  const handleDigitClick = (digit) => {
+    if (isResult) {
+      setDisplay(digit.toString());
+      setIsResult(false);
+    } else {
+      setDisplay((prev) => prev + digit);
+    }
+  };
 
-	const onRestart = () => {
-		setActiveIndex(0);
-	};
+  const handleOperationClick = (op) => {
+    if (op === "C") {
+      setDisplay("");
+      setIsResult(false);
+      return;
+    }
 
-	const onStepClick = (index) => {
-		setActiveIndex(index);
-	};
+    if (op === "=") {
+      try {
+        const result = display
+          .split(/([+-])/)
+          .reduce((acc, curr) => {
+            if (curr === "+") return acc;
+            if (curr === "-") return acc;
+            return acc !== "" ? acc + parseInt(curr, 10) : parseInt(curr, 10);
+          }, 0);
 
-	return (
-		<div className={styles.container}>
-			<div className={styles.card}>
-				<h1>Инструкция по готовке пельменей</h1>
-				<div className={styles.steps}>
-					<div className={styles['steps-content']}>
-						{steps[activeIndex].content}
-					</div>
-					<ul className={styles['steps-list']}>
-						{steps.map((step, index) => {
-							let itemClasses = styles['steps-item'];
-							if (index <= activeIndex) {
-								itemClasses += ` ${styles.done}`;
-							}
-							if (index === activeIndex) {
-								itemClasses += ` ${styles.active}`;
-							}
-							return (
-								<li key={step.id} className={itemClasses}>
-									<button className={styles['steps-item-button']} onClick={() => onStepClick(index)}>
-										{index + 1}
-									</button>
-									{step.title}
-								</li>
-							);
-						})}
-					</ul>
-					<div className={styles['buttons-container']}>
-						<button
-							className={styles.button}
-							onClick={onBack}
-							disabled={isFirstStep}
-						>
-							Назад
-						</button>
-						<button
-							className={styles.button}
-							onClick={isLastStep ? onRestart : onNext}
-						>
-							{isLastStep ? 'Начать сначала' : 'Далее'}
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+        const sanitized = display.replace(/[^0-9+-]/g, "");
+        const finalResult = Function(`return ${sanitized}`)();
+        setDisplay(parseInt(finalResult, 10).toString());
+        setIsResult(true);
+      } catch {
+        setDisplay("Error");
+        setIsResult(true);
+      }
+      return;
+    }
+
+    if (isResult) {
+      setIsResult(false);
+    }
+
+    if (display === "" && op === "-") {
+      setDisplay("-");
+      return;
+    }
+
+    const lastChar = display.slice(-1);
+    if (lastChar === "+" || lastChar === "-") {
+      setDisplay(display.slice(0, -1) + op);
+    } else {
+      setDisplay(display + op);
+    }
+  };
+
+  return (
+    <div className={styles.calculator}>
+      <div
+        className={styles.display}
+        style={{ color: isResult ? "#e91e63" : "#222" }}
+      >
+        {display || "0"}
+      </div>
+      <div className={styles.buttons}>
+        <div className={styles.numbers}>
+          {digits.map((digit) => (
+            <button
+              key={digit}
+              onClick={() => handleDigitClick(digit)}
+              className={styles.button}
+            >
+              {digit}
+            </button>
+          ))}
+        </div>
+        <div className={styles.operations}>
+          {operations.map((op) => (
+            <button
+              key={op}
+              onClick={() => handleOperationClick(op)}
+              className={styles.button}
+            >
+              {op}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
+
+
